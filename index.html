@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>mgmp - Имя прилагательное</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{
+      width:100%;height:100%;
+      font-family:"Roboto Condensed",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:#f5f5f5;
+      overflow:hidden;
+      background:#000;
+    }
+    body{
+      width:100vw;height:100vh;
+      display:flex;align-items:center;justify-content:center;
+    }
+    #game-root{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+    }
+    #game-canvas{
+      position:absolute;inset:0;width:100%;height:100%;display:block;
+      z-index:0;
+    }
+    .screen{position:absolute;inset:0;
+      display:none;align-items:center;justify-content:center;
+      padding:20px;z-index:10;}
+    .screen.active{display:flex;}
+    #start-screen{
+      background:url("images/bg1.png") center center / cover no-repeat;
+    }
+    #select-screen{background:transparent;}
+    
+    .card{
+      background:rgba(250, 252, 245, 0.92);
+      border-radius:24px;
+      box-shadow:0 24px 60px rgba(0,0,0,0.3);
+      padding:24px 20px;
+      max-width:420px;
+      width:90%;
+      backdrop-filter:blur(14px);
+      border:1px solid rgba(255,255,255,0.4);
+      color:#2c3e2d; 
+      text-align:center;
+    }
+    #select-screen .card{max-width:640px;}
+    h1,h2{font-weight:700;letter-spacing:0.03em;}
+    h1{font-size:48px;margin-bottom:10px; color:#1b5e20;}
+    h2{font-size:30px;margin-bottom:8px; color:#2e7d32;}
+    p{line-height:1.4;margin-bottom:10px;font-size:16px;}
+    .subtitle{opacity:0.85;font-size:25px;margin-bottom:16px;}
+    
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      border-radius:999px;border:none;
+      padding:11px 24px;font-size:15px;font-weight:600;
+      letter-spacing:0.07em;text-transform:uppercase;
+      cursor:pointer;
+      background:linear-gradient(135deg,#ff9800,#ffba52);
+      color:#fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      box-shadow:0 8px 20px rgba(255,152,0,0.4);
+      transition:transform 0.16s,box-shadow 0.16s,filter 0.16s;
+      margin-top:16px;
+      font-family:"Roboto Condensed",sans-serif;
+    }
+    .btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 12px 25px rgba(255,152,0,0.5);
+      filter:brightness(1.05);
+    }
+    .btn:active{
+      transform:translateY(1px) scale(0.98);
+      box-shadow:0 4px 10px rgba(255,152,0,0.4);
+      filter:brightness(0.95);
+    }
+    .btn-secondary{
+      background:transparent;color:#2e7d32;
+      border:2px solid #81c784;
+      box-shadow:none;
+      text-shadow: none;
+    }
+    .btn-secondary:hover {
+      background:#e8f5e9;
+      box-shadow:none;
+    }
+    .select-buttons{
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      margin-top:18px;
+    }
+    .character-select{
+      display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;justify-content:center;
+    }
+    
+    .char-card{
+      flex:1 1 140px;border-radius:18px;
+      border:2px solid rgba(129, 199, 132, 0.3);
+      background:radial-gradient(circle at top left, rgba(255,255,255,0.9), rgba(232,245,233,0.7));
+      padding:10px;text-align:center;cursor:pointer;
+      transition:transform 0.16s,box-shadow 0.16s,border-color 0.16s;
+    }
+    .char-card img{
+      max-width:110px;max-height:110px;object-fit:contain;
+      filter:drop-shadow(0 8px 12px rgba(0,0,0,0.2));
+    }
+    .char-card:hover{transform:translateY(-3px);box-shadow:0 12px 25px rgba(0,0,0,0.15);}
+    .char-card.selected{border-color:#ff9800;box-shadow:0 12px 25px rgba(255,152,0,0.25);}
+    .char-name{font-size:16px;font-weight:600;margin-top:6px; color:#2e7d32;}
+    .char-tag{font-size:13px;opacity:0.8; color:#ff8a65;}
+    
+    .hud{
+      position:absolute;top:6px;left:50%;transform:translateX(-50%);
+      padding:10px 24px;border-radius:999px;
+      display:flex;align-items:center;gap:18px;
+      background:rgba(46, 125, 50, 0.85);color:#fff;font-size:20px;
+      backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3);
+      z-index:3;
+    }
+    .hud span.label{opacity:0.8;}
+    
+    #question-bar{
+      position:absolute;
+      left:50%;transform:translateX(-50%);
+      top:80px;
+      width:60vw;
+      max-width:800px;
+      min-height:100px;
+      padding:20px 30px;
+      background:rgba(27, 94, 32, 0.95); 
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,0.2);
+      box-shadow:0 14px 30px rgba(0,0,0,0.4);
+      color:#fff;
+      display:none;
+      z-index:3;
+    }
+    
+    #q-main-text{
+      width:100%;
+      text-align:center;
+      font-size:28px;
+      font-weight:700;
+      margin-bottom:16px;
+    }
+    
+    #q-options{
+      display:flex;flex-wrap:wrap;gap:14px;
+      justify-content:center;
+      margin-top:4px;
+    }
+    
+    .q-option{
+      font-size:22px;
+      padding:12px 28px;
+      border-radius:999px;
+      border:2px solid #aed581;
+      background:#f1f8e9;
+      color:#33691e;
+      cursor:pointer;
+      transition:background 0.14s,transform 0.12s,box-shadow 0.14s, color 0.14s;
+      font-family:"Roboto Condensed",sans-serif;
+      font-weight: 600;
+    }
+    .q-option:hover{
+      background:#dcedc8;
+      box-shadow:0 4px 8px rgba(0,0,0,0.15);
+      transform:translateY(-1px);
+    }
+    .q-option.selected{
+      background:#66bb6a;
+      border-color:#4caf50;
+      color:#fff;
+      box-shadow:0 4px 10px rgba(0,0,0,0.25);
+    }
+    #q-feedback{
+      margin-top:4px;font-size:15px;min-height:1em;text-align:center;
+    }
+    #q-actions{
+      margin-top:10px;display:flex;justify-content:flex-end;
+    }
+    
+    #btn-q-confirm{
+      border-radius:999px;border:none;padding:10px 24px;font-size:16px;font-weight: 600;
+      letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;
+      background:linear-gradient(135deg,#ff9800,#ff7043);color:#fff;
+      box-shadow:0 6px 15px rgba(255,112,67,0.4);
+      transition:transform 0.14s,box-shadow 0.14s;
+      font-family:"Roboto Condensed",sans-serif;
+    }
+    #btn-q-confirm:hover {
+      transform:translateY(-1px);
+      box-shadow:0 8px 18px rgba(255,112,67,0.5);
+    }
+
+    /* АНИМАЦИИ ДЛЯ ПОБЕДНОГО ЗАЙКИ */
+    .victory-bunny {
+      max-width: 180px;
+      height: auto;
+      margin: 10px auto 20px auto;
+      display: block;
+      transform-origin: bottom center; /* Покачивание относительно низа */
+      animation: 
+        sway 3s ease-in-out infinite, 
+        glowPulse 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes sway {
+      0%, 100% { transform: rotate(-6deg); }
+      50% { transform: rotate(6deg); }
+    }
+
+    @keyframes glowPulse {
+      0% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4)); }
+      100% { filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.95)); }
+    }
+    
+    .firework{
+      position:absolute;width:4px;height:4px;border-radius:50%;
+      background:#fffb;
+      box-shadow:0 0 6px #fff,0 0 12px #ff9800,0 0 18px #ff7043;
+      animation:boom 1s ease-out forwards;
+    }
+    @keyframes boom{
+      0%{transform:translate(0,0) scale(1);opacity:1;}
+      100%{transform:translate(var(--tx),var(--ty)) scale(0.2);opacity:0;}
+    }
+    
+    @media (max-width:768px){
+      .card{padding:18px 16px;border-radius:20px;}
+      h1{font-size:30px;}h2{font-size:24px;}
+      #question-bar{
+        top:60px;
+        width:calc(100vw - 20px);
+        max-width:none;
+        padding:15px 16px;
+      }
+      .hud{top:4px;padding:8px 16px;font-size:18px;}
+      #q-main-text{font-size:22px;}
+      .q-option{font-size:18px; padding:10px 20px;}
+      .victory-bunny { max-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+<div id="game-root">
+  <canvas id="game-canvas"></canvas>
+  <div id="start-screen" class="screen active">
+    <div class="card">
+      <h1>Имя прилагательное</h1>
+      <p class="subtitle">
+        Натяни рогатку, выбери правильный ответ. Вперёд!
+      </p>
+      <button id="btn-start" class="btn">Начать игру</button>
+    </div>
+  </div>
+  <div id="select-screen" class="screen">
+    <div class="card">
+      <h2>Выбери персонажа</h2>
+      <div class="character-select">
+        <div class="char-card" data-pig="1">
+          <img src="images/pig1.png" alt="">
+          <div class="char-name">Шустрик</div>
+          <div class="char-tag">на ракете</div>
+        </div>
+        <div class="char-card" data-pig="2">
+          <img src="images/pig2.png" alt="">
+          <div class="char-name">Хрустик</div>
+          <div class="char-tag">на самолёте</div>
+        </div>
+        <div class="char-card" data-pig="3">
+          <img src="images/pig3.png" alt="">
+          <div class="char-name">Ушастик</div>
+          <div class="char-tag">на автомобиле</div>
+        </div>
+      </div>
+      <div class="select-buttons">
+        <button id="btn-play" class="btn">Вперед!</button>
+        <button id="btn-back-start" class="btn btn-secondary">Назад</button>
+      </div>
+    </div>
+  </div>
+  <div id="hud" class="hud" style="display:none;">
+    <div><span class="label">Вопрос:</span> <strong id="hud-qindex">1 / 10</strong></div>
+    <div><span class="label">Верные:</span> <strong id="hud-correct">0</strong></div>
+    <div><span class="label">Ошибки:</span> <strong id="hud-errors">0 / 3</strong></div>
+  </div>
+  <div id="question-bar">
+    <div id="q-main-text"></div>
+    <div id="q-options"></div>
+    <div id="q-feedback"></div>
+    <div id="q-actions">
+      <button id="btn-q-confirm">Ответить</button>
+    </div>
+  </div>
+  
+  <div id="end-screen" class="screen">
+    <div class="card">
+      <h2>Отличный результат!</h2>
+      
+      <img src="images/pobeda.png" alt="Победа!" class="victory-bunny">
+      
+      <p style="font-size:16px;margin-bottom:8px;">
+        Верных ответов: <b><span id="final-correct">0</span> из <span id="final-total">0</span></b>
+      </p>
+      <p style="font-size:16px;margin-bottom:16px;">
+        Ошибки: <b><span id="final-errors">0</span></b>
+      </p>
+      <button id="btn-play-again" class="btn">Сыграть еще раз</button>
+    </div>
+  </div>
+  
+  <div id="gameover-screen" class="screen">
+    <div class="card">
+      <h2>Игра окончена</h2>
+      <p class="subtitle">Ты допустил 3 ошибки. Не расстраивайся, давай попробуем еще раз!</p>
+      <button id="btn-try-again" class="btn">Попробовать снова</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+
+  const startScreen = document.getElementById('start-screen');
+  const selectScreen = document.getElementById('select-screen');
+  const endScreen = document.getElementById('end-screen');
+  const gameOverScreen = document.getElementById('gameover-screen');
+  const btnStart = document.getElementById('btn-start');
+  const btnBackStart = document.getElementById('btn-back-start');
+  const btnPlay = document.getElementById('btn-play');
+  const btnPlayAgain = document.getElementById('btn-play-again');
+  const btnTryAgain = document.getElementById('btn-try-again');
+
+  const hud = document.getElementById('hud');
+  const hudQIndex = document.getElementById('hud-qindex');
+  const hudErrors = document.getElementById('hud-errors');
+  const hudCorrect = document.getElementById('hud-correct');
+
+  const qBar = document.getElementById('question-bar');
+  const qMainText = document.getElementById('q-main-text');
+  const qOptions = document.getElementById('q-options');
+  const qFeedback = document.getElementById('q-feedback');
+  const btnQConfirm = document.getElementById('btn-q-confirm');
+
+  const finalCorrect = document.getElementById('final-correct');
+  const finalTotal = document.getElementById('final-total');
+  const finalErrors = document.getElementById('final-errors');
+
+  const charCards = Array.from(document.querySelectorAll('.char-card'));
+  let selectedPig = 1;
+  charCards.forEach(card=>{
+    card.addEventListener('click',()=>{
+      charCards.forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedPig = Number(card.dataset.pig);
+    });
+  });
+  charCards[0].classList.add('selected');
+
+  function showScreen(scr){
+    [startScreen,selectScreen,endScreen,gameOverScreen].forEach(s=>s.classList.remove('active'));
+    if(scr) scr.classList.add('active');
+  }
+
+  btnStart.onclick = () => showScreen(selectScreen);
+  btnBackStart.onclick = () => showScreen(startScreen);
+  btnPlay.onclick = startGame;
+
+  function resetToStart(){
+    hud.style.display = 'none';
+    qBar.style.display = 'none';
+    showScreen(startScreen);
+    state = null;
+  }
+
+  btnPlayAgain.onclick = resetToStart;
+  btnTryAgain.onclick = resetToStart;
+
+  const bg = new Image();
+  bg.src = 'images/main.png';
+
+  const pigImgs = {1:new Image(),2:new Image(),3:new Image()};
+  pigImgs[1].src='images/pig1.png';
+  pigImgs[2].src='images/pig2.png';
+  pigImgs[3].src='images/pig3.png';
+
+  const buildingImg = new Image();
+  buildingImg.src='images/building.png';
+  const pigNearImg = new Image();
+  pigNearImg.src='images/ch1.png';
+  const pigOnImg = new Image();
+  pigOnImg.src='images/ch2.png';
+
+  const baseQuestions = [
+    { text: "На какие вопросы отвечает имя прилагательное?", options: ["Какой? Какая? Какие?", "Кто? Что?", "Что делает? Что сделает?"], answer: "Какой? Какая? Какие?" },
+    { text: "Что обозначает имя прилагательное?", options: ["Признак предмета", "Предмет", "Действие предмета"], answer: "Признак предмета" },
+    { text: "С какой частью речи связано имя прилагательное?", options: ["С глаголом", "С именем существительным", "С предлогом"], answer: "С именем существительным" },
+    { text: "Найди имя прилагательное среди слов:", options: ["Белый", "Белизна", "Белеет"], answer: "Белый" },
+    { text: "Какое из этих слов – имя прилагательное?", options: ["Смех", "Смешной", "Смеяться"], answer: "Смешной" },
+    { text: "Где спряталось имя прилагательное?", options: ["Зелень", "Зеленеет", "Зелёный"], answer: "Зелёный" },
+    { text: "Какое слово лишнее (не прилагательное)?", options: ["Высокий", "Глубокий", "Прыгать"], answer: "Прыгать" },
+    { text: "Какое из слов обозначает признак предмета?", options: ["Холод", "Холодный", "Похолодало"], answer: "Холодный" },
+    { text: "В какой строке записаны ТОЛЬКО имена прилагательные?", options: ["Умный, добрый", "Лес, лесной", "Бегать, прыгать"], answer: "Умный, добрый" },
+    { text: "Какое прилагательное образовано от слова «дождь»?", options: ["Дождинка", "Дождливый", "Переждать"], answer: "Дождливый" },
+    { text: "На какой вопрос отвечает слово «пушистый»?", options: ["Какой?", "Какая?", "Какое?"], answer: "Какой?" },
+    { text: "На какой вопрос отвечает слово «весенняя»?", options: ["Какой?", "Какая?", "Какие?"], answer: "Какая?" },
+    { text: "На какой вопрос отвечает слово «яркое»?", options: ["Какой?", "Какая?", "Какое?"], answer: "Какое?" },
+    { text: "На какой вопрос отвечают слова «добрые, милые»?", options: ["Какой?", "Какие?", "Какое?"], answer: "Какие?" },
+    { text: "Укажи строку, где слова отвечают на вопрос КАКАЯ?", options: ["Храбрая, весёлая", "Трусливый, холодная", "Смелая, быстрые"], answer: "Храбрая, весёлая" },
+    { text: "Выбери подходящее прилагательное к слову «солнце»:", options: ["Яркий", "Яркая", "Яркое"], answer: "Яркое" },
+    { text: "Выбери подходящее прилагательное к слову «дерево»:", options: ["Высокое", "Высокий", "Высокая"], answer: "Высокое" },
+    { text: "Выбери вопрос для слова «морская»:", options: ["Какой?", "Какая?", "Какое?"], answer: "Какая?" },
+    { text: "Укажи имя прилагательное в единственном числе.", options: ["Маленький", "Огромные", "Высокие"], answer: "Маленький" },
+    { text: "Укажи имя прилагательное во множественном числе.", options: ["Золотые", "Деревянное", "Быстрый"], answer: "Золотые" },
+    { text: "Определи число прилагательного «тёплые»:", options: ["Единственное число", "Множественное число", "Не имеет числа"], answer: "Множественное число" },
+    { text: "Найди прилагательное в единственном числе:", options: ["Длинные", "Короткий", "Широкие"], answer: "Короткий" },
+    { text: "В какой строке все прилагательные во множественном числе?", options: ["Умные, хитрые", "Добрый, злой", "Смелая, робкая"], answer: "Умные, хитрые" },
+    { text: "Определи число прилагательных. Найди лишнее слово.", options: ["Кислый", "Красная", "Громкие"], answer: "Громкие" },
+    { text: "Подбери антоним (противоположное слово) к слову «большой»:", options: ["Маленький", "Огромный", "Великан"], answer: "Маленький" },
+    { text: "Подбери антоним к слову «широкий»:", options: ["Длинный", "Узкий", "Глубокий"], answer: "Узкий" },
+    { text: "Найди слово, противоположное по смыслу слову «горячий»:", options: ["Тёплый", "Холодный", "Жаркий"], answer: "Холодный" },
+    { text: "Подбери антоним к слову «светлый»:", options: ["Яркий", "Тёмный", "Блестящий"], answer: "Тёмный" },
+    { text: "Противоположное по значению к слову «тяжёлый» — это:", options: ["Лёгкий", "Огромный", "Трудный"], answer: "Лёгкий" },
+    { text: "Какой антоним у слова «старый» (о вещи)?", options: ["Пожилой", "Новый", "Древний"], answer: "Новый" },
+    { text: "Подбери синоним (близкое по смыслу) к слову «смелый»:", options: ["Храбрый", "Трус", "Смелость"], answer: "Храбрый" },
+    { text: "Подбери синоним к слову «грустный»:", options: ["Печальный", "Весёлый", "Смешной"], answer: "Печальный" },
+    { text: "Какое слово близко по смыслу к слову «огромный»?", options: ["Маленький", "Громадный", "Крошечный"], answer: "Громадный" },
+    { text: "Найди синоним к слову «красивый»:", options: ["Прекрасный", "Ужасный", "Страшный"], answer: "Прекрасный" },
+    { text: "Близкое по значению к слову «знойный» — это:", options: ["Жаркий", "Прохладный", "Морозный"], answer: "Жаркий" },
+    { text: "Подбери подходящее по смыслу прилагательное к слову «лимон»:", options: ["Сладкий", "Кислый", "Солёный"], answer: "Кислый" },
+    { text: "К какому существительному подходит прилагательное «колючий»?", options: ["Ёж", "Заяц", "Медведь"], answer: "Ёж" },
+    { text: "Какое слово подходит для описания хитрой лисы?", options: ["Рыжая", "Деревянная", "Стеклянная"], answer: "Рыжая" },
+    { text: "Какое прилагательное описывает зимний день?", options: ["Жаркий", "Морозный", "Знойный"], answer: "Морозный" },
+    { text: "Подбери признак к слову «яблоко»:", options: ["Спелое", "Спелый", "Спелая"], answer: "Спелое" }
+  ];
+
+  const GRAVITY = 1200;
+  const PIG_RADIUS = 26 * 3.5; 
+  const SLING_X_FRAC = 0.18;
+
+  let state = null;
+  let readyForNext = false;
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function resetState(){
+    const now = performance.now();
+    state = {
+      w:canvas.clientWidth,
+      h:canvas.clientHeight,
+      last:now,
+      pig:{x:0,y:0,vx:0,vy:0,drag:false,fly:false,img:pigImgs[selectedPig]},
+      sling:{x:0,y:0},
+      groundY:0,
+      building:[],
+      sidePigs:[],
+      topCharIndex:1,
+      fragments:[],
+      wiggleTime:0,
+      glowBlock:null,
+      glowTimer:0,
+      qIndex:0,
+      selected:null,
+      correct:0,
+      errors:0,
+      waitingAnswer:false,
+      questionLocked:false,
+      shot:false,
+      pullVector:{x:0,y:0},
+      hitRegistered:false,
+      currentShotIsHit:false,
+      questions: shuffle(baseQuestions).slice(0, 10) 
+    };
+    readyForNext = false;
+  }
+
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width*dpr;
+    canvas.height = rect.height*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(!state) return;
+    state.w = rect.width;
+    state.h = rect.height;
+    layoutWorld();
+  }
+  window.addEventListener('resize',resize);
+
+  function layoutWorld(){
+    const w=state.w,h=state.h;
+    state.groundY = h*0.94;
+    state.sling.x = w*SLING_X_FRAC;
+    state.sling.y = state.groundY - PIG_RADIUS - 10;
+    resetPig();
+    const cols=2,rows=5;
+    const towerWidth = w*0.16;
+    const blockSize  = towerWidth / cols;
+    const verticalOverlap = blockSize*0.15;
+    const structX = w*0.7;
+    const bottomRowY = state.groundY - blockSize;
+    state.building=[];
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const y = bottomRowY - r*(blockSize-verticalOverlap);
+        state.building.push({
+          x:structX+c*blockSize,
+          y:y,
+          w:blockSize,h:blockSize,
+          alive:true,
+          order:r
+        });
+      }
+    }
+    const sideSize = 80*1.8; 
+    const nearPig = {
+      img:pigNearImg,
+      x:structX - sideSize*1.1,
+      y:state.groundY - sideSize,
+      w:sideSize,h:sideSize
+    };
+    const rightCol = state.building.filter(b=>b.x===structX+blockSize);
+    const topBlock = rightCol.sort((a,b)=>b.order-a.order)[0];
+    const onPig = {
+      img:pigOnImg,
+      w:sideSize,h:sideSize
+    };
+    if(topBlock){
+      onPig.x = topBlock.x + (topBlock.w - onPig.w)/2;
+      onPig.y = topBlock.y - onPig.h*0.9;
+    }else{
+      onPig.x = structX+blockSize;
+      onPig.y = bottomRowY - onPig.h;
+    }
+    state.sidePigs=[nearPig,onPig];
+  }
+
+  function resetPig(){
+    state.pig.x = state.sling.x;
+    state.pig.y = state.sling.y;
+    state.pig.vx=0;
+    state.pig.vy=0;
+    state.pig.fly=false;
+    state.pig.drag=false;
+    state.shot=false;
+    state.hitRegistered=false;
+    state.currentShotIsHit=false;
+    readyForNext=false;
+  }
+
+  function startGame(){
+    showScreen(null);
+    hud.style.display='flex';
+    resetState();
+    state.pig.img = pigImgs[selectedPig];
+    resize();
+    state.last = performance.now();
+    setupQuestion();
+  }
+
+  function updateHUD(){
+    hudQIndex.textContent=(state.qIndex+1)+' / '+state.questions.length;
+    hudErrors.textContent=state.errors+' / 3';
+    hudCorrect.textContent=state.correct;
+  }
+
+  function clearQuestionUI(){
+    qMainText.textContent = '';
+    qOptions.innerHTML = '';
+    qFeedback.textContent = '';
+  }
+
+  function setupQuestion(){
+    const q = state.questions[state.qIndex];
+    clearQuestionUI();
+    qMainText.textContent = q.text;
+    qFeedback.className = '';
+    state.selected = null;
+    state.waitingAnswer = false;
+    state.questionLocked = false;
+    state.fragments = [];
+    state.pullVector = {x:0,y:0};
+    state.wiggleTime = 0;
+    state.glowBlock = null;
+    state.glowTimer = 0;
+    resetPig();
+    updateHUD();
+    q.options.forEach(opt=>{
+      const btn=document.createElement('button');
+      btn.className='q-option';
+      btn.textContent=opt;
+      btn.onclick=()=>{
+        if(state.questionLocked) return;
+        Array.from(qOptions.children).forEach(c=>c.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.selected=opt;
+        qFeedback.textContent='';
+      };
+      qOptions.appendChild(btn);
+    });
+  }
+
+  btnQConfirm.onclick = () => {
+    if(!state) return;
+    if(!state.waitingAnswer) return;
+    if(state.questionLocked) return;
+    if(!state.selected){
+      qFeedback.textContent='Сначала выбери верный ответ!';
+      qFeedback.className='';
+      return;
+    }
+    const q=state.questions[state.qIndex];
+    const correct = state.selected.toLowerCase()===q.answer.toLowerCase();
+    state.waitingAnswer=false;
+    state.questionLocked=true;
+    qBar.style.display='none';
+    state.currentShotIsHit = !!correct;
+    if(correct){
+      state.correct++;
+      shootHit();
+    }else{
+      state.errors++;
+      shootMiss();
+    }
+    updateHUD();
+  };
+
+  function nextQuestion(){
+    if(state.errors>=3){
+      finish(false);
+      return;
+    }
+    state.qIndex++;
+    if(state.qIndex>=state.questions.length){
+      finish(true);
+      return;
+    }
+    setupQuestion();
+  }
+
+  function finish(win){
+    hud.style.display='none';
+    qBar.style.display='none';
+    finalCorrect.textContent=state.correct;
+    finalTotal.textContent=state.questions.length;
+    finalErrors.textContent=state.errors;
+    if(win){
+      showScreen(endScreen);
+      fireworks();
+    }else{
+      showScreen(gameOverScreen);
+    }
+  }
+
+  function fireworks(){
+    const root=document.getElementById('game-root');
+    for(let i=0;i<18;i++){
+      const d=document.createElement('div');
+      d.className='firework';
+      const x=Math.random()*window.innerWidth;
+      const y=Math.random()*(window.innerHeight*0.4)+40;
+      const ang=Math.random()*Math.PI*2;
+      const dist=80+Math.random()*120;
+      d.style.left=x+'px';
+      d.style.top=y+'px';
+      d.style.setProperty('--tx',Math.cos(ang)*dist+'px');
+      d.style.setProperty('--ty',Math.sin(ang)*dist+'px');
+      root.appendChild(d);
+      setTimeout(()=>root.removeChild(d),1000);
+    }
+  }
+
+  function shootHit(){
+    const startX = state.sling.x + state.pullVector.x;
+    const startY = state.sling.y + state.pullVector.y;
+    state.pig.x = startX;
+    state.pig.y = startY;
+    const vx0 = state.sling.x - startX;
+    const vy0 = state.sling.y - startY;
+    const angle = Math.atan2(vy0, vx0);
+    const target = findBlockAlongAngle(startX,startY,angle);
+    if(target){
+      const t = 0.9;
+      const dx = (target.x+target.w/2) - startX;
+      const dy = (target.y+target.h/2) - startY;
+      state.pig.vx = dx/t;
+      state.pig.vy = dy/t - 0.5*GRAVITY*t;
+    }else{
+      const strength=6;
+      state.pig.vx = vx0*strength;
+      state.pig.vy = vy0*strength;
+    }
+    state.pig.fly=true;
+    state.shot=true;
+    state.hitRegistered=false;
+    readyForNext=false;
+  }
+
+  function shootMiss(){
+    const startX = state.sling.x + state.pullVector.x;
+    const startY = state.sling.y + state.pullVector.y;
+    const strength = 6;
+    state.pig.x = startX;
+    state.pig.y = startY;
+    state.pig.vx = (state.sling.x - startX)*strength;
+    state.pig.vy = (state.sling.y - startY)*strength;
+    state.pig.fly=true;
+    state.shot=true;
+    state.hitRegistered=false;
+    readyForNext=false;
+  }
+
+  function findBlockAlongAngle(x,y,angle){
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+    let best=null, bestDist=Infinity;
+    state.building.forEach(b=>{
+      if(!b.alive) return;
+      const cx = b.x + b.w/2;
+      const cy = b.y + b.h/2;
+      const vx = cx - x;
+      const vy = cy - y;
+      const proj = vx*dirX + vy*dirY;
+      if(proj<=0) return;
+      const perpX = vx - proj*dirX;
+      const perpY = vy - proj*dirY;
+      const perpDist = Math.hypot(perpX,perpY);
+      if(perpDist < b.w*0.8 && proj<bestDist){
+        bestDist = proj;
+        best = b;
+      }
+    });
+    return best;
+  }
+
+  function screenPos(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches&&e.touches[0]||e;
+    return {x:t.clientX-rect.left,y:t.clientY-rect.top};
+  }
+
+  function down(e){
+    if(!state) return;
+    
+    // БЛОКИРОВКА рогатки до появления нового вопроса
+    if(state.shot || state.pig.fly || state.waitingAnswer || state.questionLocked) return;
+    
+    const p=screenPos(e);
+    const dx=p.x-state.pig.x,dy=p.y-state.pig.y;
+    if(Math.hypot(dx,dy)<=PIG_RADIUS*1.8){
+      state.pig.drag=true;
+    }
+  }
+
+  function move(e){
+    if(!state || !state.pig.drag) return;
+    e.preventDefault();
+    const p=screenPos(e);
+    const slx=state.sling.x,sly=state.sling.y;
+    let dx=p.x-slx,dy=p.y-sly;
+    const maxPull=state.w*0.18;
+    const d=Math.hypot(dx,dy);
+    if(d>maxPull){dx*=maxPull/d;dy*=maxPull/d;}
+    state.pig.x=slx+dx;
+    state.pig.y=sly+dy;
+    state.pullVector={x:dx,y:dy};
+  }
+
+  function up(){
+    if(!state || !state.pig.drag) return;
+    state.pig.drag=false;
+    const slx=state.sling.x,sly=state.sling.y;
+    const dx=state.pig.x-slx,dy=state.pig.y-sly;
+    const d=Math.hypot(dx,dy);
+    const MIN_PULL=state.w*0.02;
+    if(d<MIN_PULL){
+      resetPig();
+      return;
+    }
+    state.waitingAnswer=true;
+    qBar.style.display='block';
+  }
+
+  canvas.addEventListener('mousedown',down);
+  canvas.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',up);
+
+  canvas.addEventListener('touchstart',down,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  window.addEventListener('touchend',up);
+
+  function loop(t){
+    if(!state){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawStaticBg();
+      requestAnimationFrame(loop);
+      return;
+    }
+    const dt=(t-state.last)/1000;
+    state.last=t;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function drawStaticBg(){
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    if(canvas.width !== w*dpr || canvas.height !== h*dpr){
+      canvas.width = w*dpr;
+      canvas.height = h*dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    if(bg.complete && bg.naturalWidth){
+      const imgRatio=bg.width/bg.height;
+      const screenRatio=w/h;
+      let dw,dh,dx,dy;
+      if(screenRatio>imgRatio){
+        dw=w;dh=w/imgRatio;dx=0;dy=(h-dh)/2;
+      }else{
+        dh=h;dw=h*imgRatio;dy=0;dx=(w-dw)/2;
+      }
+      ctx.drawImage(bg,dx,dy,dw,dh);
+    }
+  }
+
+  function update(dt){
+    const g=GRAVITY*dt;
+    const h=state.h;
+    const groundY=state.groundY;
+    if(state.wiggleTime>0){
+      state.wiggleTime -= dt;
+      if(state.wiggleTime<0) state.wiggleTime=0;
+    }
+    if(state.glowTimer>0){
+      state.glowTimer -= dt;
+      if(state.glowTimer<=0){
+        state.glowTimer=0;
+        state.glowBlock=null;
+      }
+    }
+    if(state.pig.fly){
+      state.pig.vy+=g;
+      state.pig.x+=state.pig.vx*dt;
+      state.pig.y+=state.pig.vy*dt;
+      if(state.currentShotIsHit && !state.hitRegistered){
+        const hitBlock = state.building.find(b=>{
+          if(!b.alive) return false;
+          return circleRect(state.pig.x,state.pig.y,PIG_RADIUS,b.x,b.y,b.w,b.h);
+        });
+        if(hitBlock){
+          state.hitRegistered = true;
+          hitBlock.alive=false;
+          spawnFragmentsHorizontal(hitBlock);
+          state.wiggleTime = 0.3;
+          state.glowBlock = {x:hitBlock.x,y:hitBlock.y,w:hitBlock.w,h:hitBlock.h};
+          state.glowTimer = 0.35;
+          collapseColumn(hitBlock);
+          moveTopCharacterIfNeeded(hitBlock);
+        }
+      }
+      if(
+        state.pig.y>h+150 ||
+        state.pig.x>state.w+200 ||
+        state.pig.x<-200
+      ){
+        state.pig.fly=false;
+        state.shot=false;
+        resetPig();
+        state.pullVector={x:0,y:0};
+        readyForNext=true;
+      }
+    }
+    state.fragments.forEach(f=>{
+      f.vy+=g;
+      f.x+=f.vx*dt;
+      f.y+=f.vy*dt;
+      if(f.y+f.h>groundY){
+        f.y=groundY-f.h;
+        f.vy*=-0.2;
+        f.vx*=0.4;
+        if(Math.abs(f.vy)<20) f.dead=true;
+      }
+    });
+    state.fragments = state.fragments.filter(f=>!f.dead);
+    if(
+      readyForNext &&
+      !state.pig.fly &&
+      !state.shot &&
+      state.fragments.length===0 &&
+      state.questionLocked &&
+      !state.waitingAnswer
+    ){
+      readyForNext=false;
+      nextQuestion();
+    }
+  }
+
+  function collapseColumn(hitBlock){
+    const cx = hitBlock.x + hitBlock.w/2;
+    const col = state.building.filter(b=>{
+      const center = b.x + b.w/2;
+      return Math.abs(center - cx) < hitBlock.w*0.4;
+    });
+    const alive = col.filter(b=>b.alive).sort((a,b)=>a.order-b.order);
+    if(!alive.length) return;
+    const groundY = state.groundY;
+    const step = hitBlock.h - hitBlock.h*0.15;
+    let currentY = groundY - hitBlock.h;
+    alive.forEach(b=>{
+      b.y = currentY;
+      currentY -= step;
+    });
+  }
+
+  function moveTopCharacterIfNeeded(hitBlock){
+    const top = state.sidePigs[state.topCharIndex];
+    if(!top) return;
+    const centerTopX = top.x + top.w/2;
+    const blockCenterX = hitBlock.x + hitBlock.w/2;
+    if(Math.abs(centerTopX - blockCenterX) > hitBlock.w*0.4) return;
+    const colBlocks = state.building.filter(b=>{
+      const cx = b.x + b.w/2;
+      return Math.abs(cx - blockCenterX) < hitBlock.w*0.4 && b.alive;
+    });
+    if(colBlocks.length){
+      const topBlock = colBlocks.sort((a,b)=>b.order-a.order)[0];
+      top.y = topBlock.y - top.h*0.9;
+      top.x = topBlock.x + (topBlock.w - top.w)/2;
+    }else{
+      top.y = state.groundY - top.h;
+      top.x = blockCenterX - top.w/2;
+    }
+  }
+
+  function spawnFragmentsHorizontal(block){
+    const halfH = block.h/2;
+    const fragW = block.w;
+    state.fragments.push({
+      x:block.x,
+      y:block.y,
+      w:fragW,
+      h:halfH,
+      vx:-80,vy:-250,dead:false,
+      sx:0, sy:0,
+      sw:buildingImg.width,
+      sh:buildingImg.height/2
+    });
+    state.fragments.push({
+      x:block.x,
+      y:block.y+halfH,
+      w:fragW,
+      h:halfH,
+      vx:80,vy:-200,dead:false,
+      sx:0, sy:buildingImg.height/2,
+      sw:buildingImg.width,
+      sh:buildingImg.height/2
+    });
+  }
+
+  function circleRect(cx,cy,r,rx,ry,rw,rh){
+    const closestX=Math.max(rx,Math.min(cx,rx+rw));
+    const closestY=Math.max(ry,Math.min(cy,ry+rh));
+    const dx=cx-closestX,dy=cy-closestY;
+    return dx*dx+dy*dy<r*r;
+  }
+
+  function draw(){
+    const w=state.w,h=state.h;
+    ctx.clearRect(0,0,w,h);
+    if(bg.complete&&bg.naturalWidth){
+      const imgRatio=bg.width/bg.height;
+      const screenRatio=w/h;
+      let dw,dh,dx,dy;
+      if(screenRatio>imgRatio){
+        dw=w;dh=w/imgRatio;dx=0;dy=(h-dh)/2;
+      }else{
+        dh=h;dw=h*imgRatio;dy=0;dx=(w-dw)/2;
+      }
+      ctx.drawImage(bg,dx,dy,dw,dh);
+    }
+    const wiggleOffset = state.wiggleTime>0 ? Math.sin(Date.now()/40)*2 : 0;
+    state.building.forEach(b=>{
+      if(!b.alive) return;
+      const drawX = b.x + wiggleOffset;
+      const drawY = b.y;
+      const isGlow = state.glowBlock &&
+                     Math.abs(state.glowBlock.x - b.x) < 0.5 &&
+                     Math.abs(state.glowBlock.y - b.y) < 0.5 &&
+                     state.glowTimer>0;
+      if(buildingImg.complete&&buildingImg.naturalWidth){
+        if(isGlow){
+          ctx.save();
+          ctx.shadowColor='rgba(255,215,120,1)';
+          ctx.shadowBlur=55;
+          ctx.drawImage(buildingImg,drawX,drawY,b.w,b.h);
+          ctx.restore();
+        }else{
+          ctx.drawImage(buildingImg,drawX,drawY,b.w,b.h);
+        }
+      }else{
+        ctx.fillStyle=isGlow?'#ffd776':'#888';
+        ctx.fillRect(drawX,drawY,b.w,b.h);
+      }
+    });
+    ctx.save();
+    ctx.globalAlpha=0.95;
+    state.fragments.forEach(f=>{
+      if(buildingImg.complete&&buildingImg.naturalWidth){
+        ctx.drawImage(
+          buildingImg,
+          f.sx, f.sy, f.sw, f.sh,
+          f.x, f.y, f.w, f.h
+        );
+      }else{
+        ctx.fillStyle='#bbb';ctx.fillRect(f.x,f.y,f.w,f.h);
+      }
+    });
+    ctx.restore();
+    state.sidePigs.forEach(sp=>{
+      if(!sp.img.complete||!sp.img.naturalWidth) return;
+      ctx.drawImage(sp.img,sp.x,sp.y,sp.w,sp.h);
+    });
+    const baseWidth = 30;
+    const trunkHeight = 70;
+    const forkSpread = 24;
+    const baseX = state.sling.x;
+    const forkY = state.sling.y;
+    const trunkTop = forkY;
+    const trunkBottom = trunkTop + trunkHeight;
+    ctx.fillStyle='#5b3414';
+    ctx.fillRect(baseX-baseWidth/2, trunkTop, baseWidth, trunkHeight);
+    ctx.fillRect(baseX-baseWidth/2-8, trunkBottom, baseWidth+16, 15);
+    ctx.beginPath();
+    ctx.moveTo(baseX, forkY-10);
+    ctx.lineTo(baseX-forkSpread, forkY);
+    ctx.lineTo(baseX+forkSpread, forkY);
+    ctx.closePath();
+    ctx.fill();
+    if(!state.pig.fly){
+      ctx.strokeStyle='#3b2410';
+      ctx.lineWidth=4;
+      const baseLeftX=baseX-forkSpread+2;
+      const baseRightX=baseX+forkSpread-2;
+      const baseY=forkY;
+      const pigX=state.pig.x;
+      const pigY=state.pig.y;
+      ctx.beginPath();
+      ctx.moveTo(baseLeftX,baseY);
+      ctx.lineTo(pigX-8,pigY);
+      ctx.moveTo(baseRightX,baseY);
+      ctx.lineTo(pigX+8,pigY);
+      ctx.stroke();
+    }
+    const img=state.pig.img;
+    const r=PIG_RADIUS;
+    if(img.complete&&img.naturalWidth){
+      const iw=r*2.2,ih=r*2.2;
+      ctx.drawImage(img,state.pig.x-iw/2,state.pig.y-ih/2,iw,ih);
+    }else{
+      ctx.fillStyle='#8bc34a';
+      ctx.beginPath();ctx.arc(state.pig.x,state.pig.y,r,0,Math.PI*2);ctx.fill();
+    }
+  }
+  resize();
+  bg.onload=()=>drawStaticBg();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
